@@ -4,7 +4,7 @@ English | [简体中文](README_CN.md)
 
 AI-powered 3-stage classifier for Bilibili favorites (bookmarked videos). Uses Claude API to generate classification rules, then applies algorithm pre-classification → AI review → manual review pipeline, and syncs results to Bilibili favorites folders.
 
-> Companion project: [bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier) — classifies followed UP masters. Import its results to boost favorites classification accuracy.
+> Companion project: [bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier) — classifies followed UP masters. Import its results to boost classification accuracy.
 
 ## Features
 
