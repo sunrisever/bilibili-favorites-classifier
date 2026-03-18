@@ -1,24 +1,52 @@
 [English](README.md) | 简体中文
 
-# Bilibili 收藏夹分类助手
+# B站收藏夹分类器
 
-自动对B站收藏夹中的视频进行分类管理。使用 Claude API 生成分类体系并辅助审核，支持算法预分类 + AI审核 + 人工审核的三阶段分类流程。
+> Classify Bilibili favorites with algorithm + AI review and sync to folders | B站收藏夹分类、审核与同步工具
 
-> 灵感来源：[bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier) — B站关注UP主分类工具。本项目借鉴了其分类体系设计，并支持导入UP主分类结果作为收藏夹分类的辅助信号，提升分类准确率。
+这个项目用来把凌乱的 B 站收藏夹重组为一个可维护的分类系统。它把数据采集、规则生成、算法预分类、AI 审核、人工复核和最终同步串成一条完整流程，适合长期维护大量收藏视频。
 
-## 功能
+> 配套项目：[bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier)。你可以把关注 UP 主的分类结果导入进来，作为收藏视频分类的重要先验信号。
 
-- **数据采集**：自动获取所有收藏夹的视频信息（含标签），支持断点续传
-- **AI分类体系**：基于收藏数据统计，由 Claude 自动生成合适的分类规则
-- **三阶段分类**：算法预分类 → AI审核低置信度结果 → 人工审核兜底
-- **UP主映射**：支持导入关注分类结果（`up_classify_map.json`），利用UP主已有分类提升准确率
-- **收藏夹简介**：创建收藏夹时自动设置描述文字
-- **同步到B站**：将分类结果同步为B站收藏夹（清空重建模式）
-- **增量处理**：支持仅处理新收藏的视频
-- **摘要生成**：输出可读的视频信息汇总和分类结果文档
-- **AI 编程助手支持**：内置 `CLAUDE.md` 和 `AGENTS.md`，兼容 Claude Code、Codex、OpenCode、OpenClaw
+## 这个项目解决什么问题
 
-## 环境准备
+收藏视频一多，默认收藏夹通常会出现这些问题：
+
+- 新视频不断堆到不合适的位置
+- 分类体系随着兴趣变化逐渐失真
+- 手工整理成本越来越高
+
+这个仓库的目标，就是把整理收藏夹变成一条可重复执行的流程：采集数据、生成规则、处理低置信度样本、最后再同步回 B 站。
+
+## 核心特点
+
+- 支持全量采集收藏数据，并可断点续传
+- 基于你自己的数据统计生成分类规则
+- 三阶段分类：算法预分类 -> AI 审核 -> 人工审核
+- 可选导入 `bilibili-follow-classifier` 的 UP 主分类结果
+- 支持只处理新收藏的视频
+- 提供缺失视频恢复流程
+- 内置 `SKILL.md`、`AGENTS.md`、`CLAUDE.md`，适合 Claude Code、Codex、OpenCode、OpenClaw 等 AI 编程助手
+
+## 快速入口
+
+- [SKILL.md](SKILL.md)
+- [AGENTS.md](AGENTS.md)
+- [CLAUDE.md](CLAUDE.md)
+- [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)
+
+## 使用流程总览
+
+1. 复制示例配置到本地 `data/`
+2. 填好 B 站 Cookie 和模型 API 凭证
+3. 用 `python fetch.py all` 采集收藏数据
+4. 用 `python analyze.py` 生成分类规则
+5. 用 `python classify.py` 跑完整分类流程
+6. 复核低置信度样本
+7. 用 `python sync.py --dry-run` 预览同步
+8. 确认无误后再执行 `python sync.py`
+
+## 安装
 
 ```bash
 pip install -r requirements.txt
@@ -26,20 +54,21 @@ pip install -r requirements.txt
 
 ## 配置
 
-1. 复制示例配置：
+先从示例配置生成本地配置：
+
 ```bash
 cp data_example/config.json data/config.json
 ```
 
-2. 编辑 `data/config.json`，填入你的凭证：
+然后编辑 `data/config.json`：
 
 ```json
 {
   "bilibili": {
-    "sessdata": "从浏览器Cookie获取",
-    "bili_jct": "从浏览器Cookie获取",
-    "buvid3": "从浏览器Cookie获取",
-    "dedeuserid": "你的B站UID"
+    "sessdata": "你的SESSDATA",
+    "bili_jct": "你的bili_jct",
+    "buvid3": "你的buvid3",
+    "dedeuserid": "你的UID"
   },
   "claude": {
     "api_key": "你的Claude API Key",
@@ -49,137 +78,116 @@ cp data_example/config.json data/config.json
 }
 ```
 
-**获取B站Cookie**：浏览器登录B站 → F12开发者工具 → Application → Cookies → 找到对应字段。
+## 主流程
 
-## 使用流程
-
-### 1. 采集数据
+### 1. 采集收藏数据
 
 ```bash
-python fetch.py all       # 全量采集所有收藏夹视频
-python fetch.py resume    # 断点续传（中断后继续）
-python fetch.py stats     # 查看已采集数据统计
+python fetch.py all
+python fetch.py resume
+python fetch.py stats
 ```
 
 ### 2. 生成分类规则
 
 ```bash
-python analyze.py          # AI分析数据并生成分类体系
-python analyze.py summary  # 仅查看数据摘要（不调用AI）
+python analyze.py
+python analyze.py summary
 ```
 
-生成的规则保存在 `data/classify_rules.json`，可手动微调。
+生成后的规则文件保存在 `data/classify_rules.json`。
 
-### 3. 导入UP主分类（可选）
-
-如果你使用过 [bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier) 对关注的UP主进行了分类，可以一键导入：
+### 3. 导入 UP 主分类
 
 ```bash
-python import_up_map.py                        # 自动查找同级目录的关注分类项目
-python import_up_map.py <关注分类项目路径>     # 指定项目路径
-python import_up_map.py --file <分类结果.json> # 直接指定文件
+python import_up_map.py
+python import_up_map.py <project_path>
+python import_up_map.py --file <result.json>
 ```
 
-导入后生成 `data/up_classify_map.json`，算法预分类时UP主映射会作为强信号（+200分），显著提升该UP主视频的分类准确率。
+这样可以把“某个 UP 主通常属于哪个方向”的先验引入收藏分类中。
 
-### 4. 分类视频
+### 4. 运行三阶段分类
 
 ```bash
-python classify.py         # 完整三阶段分类
-python classify.py algo    # 仅算法预分类
-python classify.py ai      # 仅AI审核
-python classify.py review  # 仅人工审核
+python classify.py
+python classify.py algo
+python classify.py ai
+python classify.py review
 ```
 
-人工审核时的操作：
-- `Enter` - 确认当前分类
-- `数字` - 更改为指定分类
-- `s` - 跳过
-- `o` - 浏览器打开视频
-- `q` - 退出并保存
+人工审核快捷键：
 
-### 5. 编辑收藏夹简介（可选）
+- `Enter`：接受当前分类
+- `数字`：改成对应分类
+- `s`：跳过
+- `o`：浏览器打开视频
+- `q`：退出并保存
 
-编辑 `data/folder_descriptions.json`，为每个分类设置收藏夹简介：
-
-```json
-{
-  "编程/计算机": "数据结构与算法、操作系统、计算机网络、编程语言教程",
-  "音乐/乐器": "钢琴演奏、吉他指弹、声乐教学、翻唱与乐理知识"
-}
-```
-
-同步时会自动将简介写入B站收藏夹的描述字段。参考模板见 `data_example/folder_descriptions.json`。
-
-### 6. 同步到B站
+### 5. 预览并同步到 B 站
 
 ```bash
-python sync.py --dry-run   # 预览将要执行的操作
-python sync.py             # 实际同步（会重建收藏夹）
+python sync.py --dry-run
+python sync.py
 ```
 
-**特性**：
-- 按收藏时间顺序逐个移动视频，恢复原始时间结构（最近收藏的排在最前）
-- 支持自定义收藏夹显示顺序（在 sync.py 的 `folder_order` 函数中调整）
-- 同步前会先将旧收藏夹视频归集到默认收藏夹，确保不丢失视频
+## 增量与恢复工具
 
-**注意**：同步操作会删除所有非默认收藏夹并重新创建，请先使用 `--dry-run` 预览。
-
-### 6.1 恢复丢失的视频（可选）
+### 处理新收藏
 
 ```bash
-python recover.py --dry-run   # 预览缺失的视频
-python recover.py             # 将缺失视频重新收藏到默认收藏夹
+python add_new.py
+python add_new.py --days 30
 ```
 
-### 7. 增量更新
+### 恢复缺失视频
 
 ```bash
-python add_new.py            # 处理最近7天的新收藏
-python add_new.py --days 30  # 处理最近30天的新收藏
+python recover.py --dry-run
+python recover.py
 ```
 
-### 8. 生成摘要
+### 生成可读摘要
 
 ```bash
-python generate_info.py    # 生成视频信息汇总和分类结果文档
+python generate_info.py
 ```
 
 ## 项目结构
 
-```
-├── fetch.py                  # 数据采集（断点续传）
-├── analyze.py                # AI生成分类体系
-├── classify.py               # 三阶段分类
-├── sync.py                   # 同步到B站收藏夹（按收藏时间排序）
-├── recover.py                # 恢复丢失的视频
-├── import_up_map.py          # 导入UP主分类（从关注分类项目）
-├── add_new.py                # 增量处理
-├── generate_info.py          # 生成可读摘要
-├── requirements.txt
-├── data/                     # 个人数据（gitignored）
-│   ├── config.json
-│   ├── classify_rules.json
-│   ├── folder_descriptions.json
-│   ├── up_classify_map.json
-│   ├── 收藏视频数据.json
-│   ├── fetch_checkpoint.json
-│   ├── 分类结果.json
-│   ├── 分类结果.md
-│   └── 视频信息汇总.txt
-└── data_example/             # 示例模板
-    ├── config.json
-    ├── classify_rules.json
-    └── folder_descriptions.json
+```text
+├── fetch.py
+├── analyze.py
+├── classify.py
+├── sync.py
+├── add_new.py
+├── recover.py
+├── import_up_map.py
+├── generate_info.py
+├── SKILL.md
+├── AGENTS.md
+├── CLAUDE.md
+├── RELEASE_CHECKLIST.md
+├── data_example/
+└── data/
 ```
 
-## 注意事项
+## 隐私与安全
 
-- `data/` 目录包含个人隐私数据，不会上传
-- sync.py 会**删除并重建**所有收藏夹，务必先 `--dry-run`
-- Cookie 过期后所有 API 操作失败，需重新获取
-- analyze.py 和 classify.py 的 AI 审核会消耗 Claude API 额度
-- 与 [bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier) 互补：一个管关注UP主分组，一个管收藏视频分类
+- `data/` 中包含 Cookie、采集数据和分类结果，应保持本地存放
+- 仓库已按隐私型规则配置，避免提交本地敏感数据
+- 所有破坏性同步操作都应先 `--dry-run`
+
+## 风险提醒
+
+- `sync.py` 会重建非默认收藏夹
+- AI 审核和规则生成会消耗模型额度
+- Cookie 会过期，需要定期更新
+- 最安全的用法是把“同步”当最后一步，而不是最开始就执行
+
+## 相关项目
+
+- [bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier)：用于整理关注 UP 主，并把结果复用到这里
 
 ## 开源协议
 
