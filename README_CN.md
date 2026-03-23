@@ -1,12 +1,12 @@
 [English](README.md) | 简体中文
 
-# B站收藏夹分类器
+# Bilibili Favorites
 
-> AI-assisted Bilibili favorites classifier and folder sync | AI 辅助的 B站收藏夹分类与同步工具
+> B站收藏夹整理与同步工具
 
 这个项目用来把凌乱的 B 站收藏夹重组为一个可维护的分类系统。它把数据采集、规则生成、算法预分类、AI 审核、人工复核和最终同步串成一条完整流程，适合长期维护大量收藏视频。
 
-> 配套项目：[bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier)。你可以把关注 UP 主的分类结果导入进来，作为收藏视频分类的重要先验信号。
+> 配套项目：[bilibili-follow](https://github.com/sunrisever/bilibili-follow)。你可以把关注 UP 主的分类结果导入进来，作为收藏视频分类的重要先验信号。
 
 ## 这个项目解决什么问题
 
@@ -23,7 +23,7 @@
 - 支持全量采集收藏数据，并可断点续传
 - 基于你自己的数据统计生成分类规则
 - 三阶段分类：算法预分类 -> AI 审核 -> 人工审核
-- 可选导入 `bilibili-follow-classifier` 的 UP 主分类结果
+- 可选导入 `bilibili-follow` 的 UP 主分类结果
 - 支持只处理新收藏的视频
 - 提供缺失视频恢复流程
 - 内置 `SKILL.md`、`AGENTS.md`、`CLAUDE.md`，适合 Claude Code、Codex、OpenCode、OpenClaw 等 AI 编程助手
@@ -187,7 +187,7 @@ python generate_info.py
 
 ## 相关项目
 
-- [bilibili-follow-classifier](https://github.com/sunrisever/bilibili-follow-classifier)：用于整理关注 UP 主，并把结果复用到这里
+- [bilibili-follow](https://github.com/sunrisever/bilibili-follow)：用于整理关注 UP 主，并把结果复用到这里
 
 ## 开源协议
 
